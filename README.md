@@ -114,6 +114,15 @@ Browser                 Go server              Ollama
    subsequent tokens are appended directly to the bubble via the Markdown
    renderer, so bold, tables, and code blocks render live as tokens arrive.
 
+### Image attachments
+
+The attach button is available for all models. Only vision-capable models
+(e.g. `gemma3`, `llava`, `minicpm-v`) will process an attached image — if you
+send an image to a model that does not support vision, Ollama returns an error
+which is displayed inline in the chat as a `⚠️` message. No hard-coded list of
+supported models is maintained in the frontend; capability is determined at
+inference time by Ollama itself.
+
 ---
 
 ## Syncing the model list (offline / static patching)

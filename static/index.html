@@ -196,6 +196,14 @@
       flex-shrink: 0;
     }
     #topbar-title { font-weight: 600; font-size: .95rem; color: var(--text); }
+    #version-label {
+      font-size: .65rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-left: 8px;
+      vertical-align: middle;
+      opacity: .7;
+    }
     #model-badge {
       font-size: .72rem;
       background: transparent;
@@ -544,10 +552,8 @@
 
   <div id="model-section">
     <div id="model-label">Model</div>
-    <select id="model-select">
-      <option value="gemma3:12b">gemma3:12b</option>
-      <option value="qwen3.5:27b">qwen3.5:27b</option>
-      <option value="qwen3-coder:30b">qwen3-coder:30b</option>
+    <select id="model-select" disabled>
+      <option value="">Loading models…</option>
     </select>
   </div>
 
@@ -560,8 +566,8 @@
 <!-- ── Main ────────────────────────────────────────────────────── -->
 <div id="main">
   <div id="topbar">
-    <span id="topbar-title">OllaGo – AI Assistant</span>
-    <span id="model-badge">gemma3:12b</span>
+    <span id="topbar-title">OllaGo – AI Assistant<span id="version-label">v1.0.0</span></span>
+    <span id="model-badge">—</span>
   </div>
 
   <div id="chat-window">
@@ -650,8 +656,37 @@
   chatWindow.addEventListener('click', () => sidebar.classList.remove('open'));
 
   // ── Model selector ─────────────────────────────────────────────────────
-  modelBadge.textContent = modelSelect.value;
-  updateAttachVisibility(); // set initial state
+  // Populate the <select> from the live /api/models endpoint on startup.
+  (async () => {
+    try {
+      const res  = await fetch('/api/models');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const list = await res.json();               // [{name:"gemma3:12b"}, …]
+
+      modelSelect.innerHTML = '';
+      if (!list || list.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'No models installed';
+        modelSelect.appendChild(opt);
+      } else {
+        list.forEach(({ name }) => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          modelSelect.appendChild(opt);
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load models:', err);
+      modelSelect.innerHTML = '<option value="">Could not load models</option>';
+    } finally {
+      modelSelect.disabled = false;
+      modelBadge.textContent = modelSelect.value || '—';
+      updateAttachVisibility();
+    }
+  })();
+
   modelSelect.addEventListener('change', () => {
     modelBadge.textContent = modelSelect.value;
     updateAttachVisibility();

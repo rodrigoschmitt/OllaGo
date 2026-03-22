@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OllaGo – AI Assistant</title>
+  <style>
+    /* ── Design tokens ── ChatGPT palette ────────────────────────── */
+    :root {
+      --bg:          #212121;
+      --sidebar-bg:  #171717;
+      --surface:     #2f2f2f;
+      --surface-2:   #3d3d3d;
+      --border:      rgba(255,255,255,.1);
+      --text:        #ececec;
+      --text-muted:  #8e8ea0;
+      --user-bg:     #2f2f2f;
+      --user-fg:     #ececec;
+      --bot-bg:      transparent;
+      --bot-fg:      #ececec;
+      --accent:      #10a37f;
+      --accent-dark: #0a7a5e;
+      --sidebar-w:   260px;
+      --radius:      16px;
+    }
+
+    /* ── Reset & base ────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: "Söhne", ui-sans-serif, system-ui, -apple-system,
+        "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body { display: flex; background: var(--bg); color: var(--text); }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.28); }
+
+    /* ── Sidebar ─────────────────────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--sidebar-bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      overflow: hidden;
+      transition: width .25s ease;
+    }
+
+    #sidebar-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 14px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #logo-mark {
+      width: 32px;
+      height: 32px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    #logo-mark svg { width: 18px; height: 18px; fill: #212121; }
+
+    #brand-text { line-height: 1.25; }
+    #brand-name  { font-size: .9rem; font-weight: 600; color: var(--text); }
+    #brand-sub   { font-size: .62rem; color: var(--text-muted); letter-spacing: .04em; }
+
+    /* New chat button */
+    #new-chat-btn {
+      margin: 10px 8px;
+      padding: 9px 12px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .875rem;
+      font-weight: 400;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background .15s;
+      width: calc(100% - 16px);
+    }
+    #new-chat-btn:hover { background: rgba(255,255,255,.08); }
+    #new-chat-btn svg { width: 16px; height: 16px; flex-shrink: 0; stroke: var(--text-muted); }
+
+    /* Model selector */
+    #model-section { padding: 0 8px 10px; }
+    #model-label {
+      font-size: .62rem;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      padding-left: 4px;
+    }
+    #model-select {
+      width: 100%;
+      padding: 8px 30px 8px 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      font-size: .82rem;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238e8ea0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+    #model-select option { background: #2a2a2a; }
+    #model-select:focus { outline: 1px solid var(--accent); outline-offset: 1px; }
+
+    /* Conversation history list */
+    #history-label {
+      font-size: .62rem;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-muted);
+      padding: 8px 16px 4px;
+    }
+    #history-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2px 8px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.1) transparent;
+    }
+    .history-item {
+      padding: 8px 10px;
+      border-radius: 7px;
+      font-size: .82rem;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-muted);
+      transition: background .12s, color .12s;
+    }
+    .history-item:hover  { background: rgba(255,255,255,.07); color: var(--text); }
+    .history-item.active { background: rgba(255,255,255,.1);  color: var(--text); font-weight: 500; }
+
+    #sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      font-size: .7rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* ── Mobile sidebar toggle ───────────────────────────────────── */
+    #sidebar-toggle {
+      display: none;
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 200;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+    }
+    #sidebar-toggle svg { width: 20px; height: 20px; stroke: var(--text); }
+
+    /* ── Main layout ─────────────────────────────────────────────── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      min-width: 0;
+    }
+
+    /* ── Top bar ─────────────────────────────────────────────────── */
+    #topbar {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    #topbar-title { font-weight: 600; font-size: .95rem; color: var(--text); }
+    #model-badge {
+      font-size: .72rem;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── Chat window ─────────────────────────────────────────────── */
+    #chat-window {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 0 8px;
+      scroll-behavior: smooth;
+    }
+
+    .message-row {
+      display: flex;
+      padding: 4px 24px;
+      max-width: 860px;
+      margin: 0 auto;
+      width: 100%;
+      animation: fadeSlideIn .18s ease;
+    }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* User rows align right; bot rows align left */
+    .message-row.user { justify-content: flex-end; }
+    .message-row.bot  { justify-content: flex-start; gap: 14px; padding-top: 8px; padding-bottom: 8px; }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .65rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    /* ChatGPT-style: white circle avatar for bot, user avatar hidden */
+    .avatar.bot-avatar  { background: #fff; color: #212121; }
+    .avatar.user-avatar { display: none; }
+
+    .bubble {
+      font-size: .9rem;
+      line-height: 1.72;
+      word-break: break-word;
+    }
+    /* User bubble: dark rounded pill, max 72% wide */
+    .message-row.user .bubble {
+      background: var(--user-bg);
+      color: var(--user-fg);
+      border-radius: 18px 18px 4px 18px;
+      padding: 11px 18px;
+      max-width: 72%;
+    }
+    /* Bot response: no background, full width prose */
+    .message-row.bot .bubble {
+      background: var(--bot-bg);
+      color: var(--bot-fg);
+      padding: 2px 0;
+      max-width: calc(100% - 42px);
+    }
+
+    /* ── Markdown rendering ──────────────────────────────────────── */
+    .bubble h1, .bubble h2, .bubble h3, .bubble h4 {
+      margin: .65em 0 .3em;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+    .bubble h1 { font-size: 1.25em; }
+    .bubble h2 { font-size: 1.1em;  }
+    .bubble h3 { font-size: 1em;    }
+    .bubble p  { margin: .45em 0; }
+    .bubble ul, .bubble ol { margin: .4em 0 .4em 1.4em; padding: 0; }
+    .bubble li { margin: .25em 0; }
+    .bubble hr { border: none; border-top: 1px solid var(--border); margin: .7em 0; }
+    .bubble pre {
+      background: #171717;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: 12px 16px;
+      overflow-x: auto;
+      margin: .6em 0;
+      font-size: .82rem;
+    }
+    .bubble code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: .85em;
+    }
+    .bubble p code, .bubble li code {
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+    .bubble pre code { background: none; border: none; padding: 0; font-size: 1em; }
+    .bubble table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: .65em 0;
+      font-size: .85em;
+    }
+    .bubble th, .bubble td {
+      border: 1px solid rgba(255,255,255,.15);
+      padding: 7px 13px;
+      text-align: left;
+    }
+    .bubble th {
+      background: rgba(255,255,255,.06);
+      font-weight: 600;
+      color: var(--text);
+    }
+    .bubble tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+    /* User bubbles keep consistent dark table styling */
+    .message-row.user .bubble th,
+    .message-row.user .bubble td { border-color: rgba(255,255,255,.2); }
+    .message-row.user .bubble th  { background: rgba(0,0,0,.25); }
+
+    /* ── Typing / loading indicator ──────────────────────────────── */
+    .typing-indicator { display: flex; align-items: center; gap: 5px; padding: 8px 0; }
+    .typing-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: bounce .9s infinite ease-in-out;
+    }
+    .typing-dot:nth-child(2) { animation-delay: .15s; }
+    .typing-dot:nth-child(3) { animation-delay: .30s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0);    opacity: .4; }
+      40%           { transform: translateY(-5px); opacity: 1;  }
+    }
+
+    /* ── Empty state ─────────────────────────────────────────────── */
+    #empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 14px;
+      color: var(--text-muted);
+      padding: 24px;
+      text-align: center;
+    }
+    #empty-state .es-icon {
+      width: 52px; height: 52px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #empty-state .es-icon svg { width: 28px; height: 28px; fill: #212121; }
+    #empty-state h2 { font-size: 1.4rem; font-weight: 600; color: var(--text); }
+    #empty-state p  { font-size: .875rem; max-width: 360px; }
+
+    /* Suggestion chips */
+    #suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
+    .chip {
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: .8rem;
+      cursor: pointer;
+      background: var(--surface);
+      color: var(--text-muted);
+      transition: background .12s, color .12s, border-color .12s;
+      text-align: left;
+    }
+    .chip:hover { background: var(--surface-2); color: var(--text); border-color: rgba(255,255,255,.22); }
+
+    /* ── Input area ──────────────────────────────────────────────── */
+    #input-area {
+      background: var(--bg);
+      padding: 12px 24px 20px;
+      flex-shrink: 0;
+    }
+    /* Unified rounded container — textarea + buttons sit inside */
+    #input-form {
+      max-width: 740px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 16px;
+      padding: 10px 10px 10px 16px;
+      transition: border-color .15s;
+    }
+    #input-form:focus-within { border-color: rgba(255,255,255,.28); }
+    #user-input {
+      flex: 1;
+      padding: 2px 0;
+      border: none;
+      font-size: .9rem;
+      resize: none;
+      font-family: inherit;
+      max-height: 160px;
+      min-height: 26px;
+      line-height: 1.6;
+      background: transparent;
+      color: var(--text);
+    }
+    #user-input:focus { outline: none; }
+    #user-input::placeholder { color: var(--text-muted); }
+
+    /* White circular send button */
+    #send-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .12s, transform .1s;
+    }
+    #send-btn:hover:not(:disabled)  { background: #e5e5e5; }
+    #send-btn:active:not(:disabled) { transform: scale(.9); }
+    #send-btn:disabled { background: rgba(255,255,255,.18); cursor: not-allowed; }
+    #send-btn svg { width: 15px; height: 15px; stroke: #212121; }
+    #send-btn:disabled svg { stroke: rgba(255,255,255,.4); }
+
+    /* Attach button (inside the form container) */
+    #attach-btn {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .12s;
+    }
+    #attach-btn:hover { background: rgba(255,255,255,.08); }
+    #attach-btn.has-image { background: var(--accent); }
+    #attach-btn svg { width: 18px; height: 18px; stroke: var(--text-muted); }
+    #attach-btn:hover svg { stroke: var(--text); }
+    #attach-btn.has-image svg { stroke: #fff; }
+
+    #image-preview-bar { max-width: 740px; margin: 0 auto 8px; }
+    #image-preview-inner {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 8px 4px 4px;
+    }
+    #image-preview-thumb { height: 40px; width: 40px; object-fit: cover; border-radius: 5px; }
+    #image-preview-label { font-size: .75rem; color: var(--text-muted); }
+    #remove-image-btn {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: none;
+      background: var(--text-muted);
+      color: #fff;
+      cursor: pointer;
+      font-size: .75rem;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    #remove-image-btn:hover { background: var(--text); }
+
+    .bubble-image {
+      max-width: 100%;
+      max-height: 220px;
+      border-radius: 8px;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    #input-hint {
+      text-align: center;
+      font-size: .68rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+      max-width: 740px;
+      margin-left: auto;
+      margin-right: auto;
+      opacity: .6;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      #sidebar { position: fixed; z-index: 100; height: 100%; transform: translateX(-100%); }
+      #sidebar.open { transform: translateX(0); }
+      #sidebar-toggle { display: flex; }
+      #topbar { padding-left: 56px; }
+      .message-row.user .bubble { max-width: 88%; }
+      .message-row { padding: 4px 14px; }
+      #input-area { padding: 10px 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Mobile sidebar toggle -->
+<button id="sidebar-toggle" aria-label="Open sidebar">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="3" y1="6"  x2="21" y2="6"/>
+    <line x1="3" y1="12" x2="21" y2="12"/>
+    <line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+</button>
+
+<!-- ── Sidebar ──────────────────────────────────────────────────── -->
+<aside id="sidebar">
+  <div id="sidebar-header">
+    <div id="logo-mark">
+      <!-- Sparkle / AI icon -->
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+      </svg>
+    </div>
+    <div id="brand-text">
+      <div id="brand-name">OllaGo</div>
+      <div id="brand-sub">Rodrigo Andrade</div>
+    </div>
+  </div>
+
+  <button id="new-chat-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    New Conversation
+  </button>
+
+  <div id="model-section">
+    <div id="model-label">Model</div>
+    <select id="model-select">
+      <option value="gemma3:12b">gemma3:12b</option>
+      <option value="qwen3.5:27b">qwen3.5:27b</option>
+      <option value="qwen3-coder:30b">qwen3-coder:30b</option>
+    </select>
+  </div>
+
+  <div id="history-label">Recent</div>
+  <div id="history-list"></div>
+
+  <div id="sidebar-footer">Powered by Ollama · Rodrigo Andrade</div>
+</aside>
+
+<!-- ── Main ────────────────────────────────────────────────────── -->
+<div id="main">
+  <div id="topbar">
+    <span id="topbar-title">OllaGo – AI Assistant</span>
+    <span id="model-badge">gemma3:12b</span>
+  </div>
+
+  <div id="chat-window">
+    <div id="empty-state">
+      <div class="es-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+        </svg>
+      </div>
+      <h2>What can I help you with?</h2>
+      <p>Your local AI assistant — powered by Ollama, fully private, no cloud dependencies.</p>
+      <div id="suggestions">
+        <button class="chip">Write a Go function to parse JSON</button>
+        <button class="chip">Draft a job description for a senior engineer</button>
+        <button class="chip">Summarise this sprint's release notes</button>
+        <button class="chip">Explain this SQL query</button>
+        <button class="chip">Write a user story for this feature</button>
+        <button class="chip">Review this pull request description</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <div id="image-preview-bar" style="display:none">
+      <div id="image-preview-inner">
+        <img id="image-preview-thumb" src="" alt="Attached image" />
+        <span id="image-preview-label">Image attached</span>
+        <button id="remove-image-btn" type="button" aria-label="Remove image">×</button>
+      </div>
+    </div>
+    <form id="input-form">
+      <button id="attach-btn" type="button" aria-label="Attach image" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+        </svg>
+      </button>
+      <input id="image-input" type="file" accept="image/*" style="display:none" />
+      <textarea
+        id="user-input"
+        rows="1"
+        placeholder="Message OllaGo…"
+        autocomplete="off"
+        spellcheck="true"
+      ></textarea>
+      <button id="send-btn" type="submit" aria-label="Send">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="19" x2="12" y2="5"/>
+          <polyline points="5 12 12 5 19 12"/>
+        </svg>
+      </button>
+    </form>
+    <div id="input-hint">Enter to send · Shift+Enter for new line</div>
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────
+  let messages = [];          // { role, content, images?: string[], imageDataUrls?: string[] }[]
+  let isStreaming = false;
+  let pendingImageB64 = null;     // raw base64 for Ollama API
+  let pendingImageDataUrl = null; // full data URL for display
+
+  const VISION_MODELS = new Set(['qwen3.5:27b','gemma3:12b']);
+
+  // ── DOM refs ───────────────────────────────────────────────────────────
+  const chatWindow        = document.getElementById('chat-window');
+  const emptyState        = document.getElementById('empty-state');
+  const inputForm         = document.getElementById('input-form');
+  const userInput         = document.getElementById('user-input');
+  const sendBtn           = document.getElementById('send-btn');
+  const modelSelect       = document.getElementById('model-select');
+  const modelBadge        = document.getElementById('model-badge');
+  const historyList       = document.getElementById('history-list');
+  const newChatBtn        = document.getElementById('new-chat-btn');
+  const sidebar           = document.getElementById('sidebar');
+  const sidebarToggle     = document.getElementById('sidebar-toggle');
+  const attachBtn         = document.getElementById('attach-btn');
+  const imageInput        = document.getElementById('image-input');
+  const imagePreviewBar   = document.getElementById('image-preview-bar');
+  const imagePreviewThumb = document.getElementById('image-preview-thumb');
+  const removeImageBtn    = document.getElementById('remove-image-btn');
+
+  // ── Sidebar (mobile) ───────────────────────────────────────────────────
+  sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+  chatWindow.addEventListener('click', () => sidebar.classList.remove('open'));
+
+  // ── Model selector ─────────────────────────────────────────────────────
+  modelBadge.textContent = modelSelect.value;
+  updateAttachVisibility(); // set initial state
+  modelSelect.addEventListener('change', () => {
+    modelBadge.textContent = modelSelect.value;
+    updateAttachVisibility();
+    if (!VISION_MODELS.has(modelSelect.value)) clearPendingImage();
+  });
+
+  // ── Auto-resize textarea ────────────────────────────────────────────────
+  userInput.addEventListener('input', () => {
+    userInput.style.height = 'auto';
+    userInput.style.height = Math.min(userInput.scrollHeight, 160) + 'px';
+  });
+
+  // ── Enter to send ──────────────────────────────────────────────────────
+  userInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!isStreaming) inputForm.requestSubmit();
+    }
+  });
+
+  // ── Suggestion chips ───────────────────────────────────────────────────
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      userInput.value = chip.textContent;
+      inputForm.requestSubmit();
+    });
+  });
+
+  // ── New chat ───────────────────────────────────────────────────────────
+  newChatBtn.addEventListener('click', () => {
+    if (isStreaming) return;
+    saveToHistory();
+    messages = [];
+    renderMessages();
+    sidebar.classList.remove('open');
+  });
+
+  // ── Image attach ────────────────────────────────────────────────────────
+  attachBtn.addEventListener('click', () => imageInput.click());
+
+  imageInput.addEventListener('change', () => {
+    const file = imageInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      pendingImageDataUrl = e.target.result;
+      pendingImageB64 = pendingImageDataUrl.split(',')[1];
+      imagePreviewThumb.src = pendingImageDataUrl;
+      imagePreviewBar.style.display = 'block';
+      attachBtn.classList.add('has-image');
+      imageInput.value = ''; // reset only after read completes — clearing earlier can revoke the file handle in some browsers
+    };
+    reader.readAsDataURL(file);
+  });
+
+  removeImageBtn.addEventListener('click', clearPendingImage);
+
+  function clearPendingImage() {
+    pendingImageB64 = null;
+    pendingImageDataUrl = null;
+    imagePreviewBar.style.display = 'none';
+    imagePreviewThumb.src = '';
+    attachBtn.classList.remove('has-image');
+  }
+
+  function updateAttachVisibility() {
+    attachBtn.style.display = VISION_MODELS.has(modelSelect.value) ? 'flex' : 'none';
+  }
+
+  // ── Form submit ─────────────────────────────────────────────────────────
+  inputForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = userInput.value.trim();
+    if ((!text && !pendingImageB64) || isStreaming) return;
+
+    // Clear input
+    userInput.value = '';
+    userInput.style.height = 'auto';
+
+    // Hide empty state
+    emptyState.style.display = 'none';
+
+    // Add user message (store data URL for display, base64 for API)
+    const userMsg = { role: 'user', content: text };
+    if (pendingImageB64) {
+      userMsg.images = [pendingImageB64];
+      userMsg.imageDataUrls = [pendingImageDataUrl];
+    }
+    messages.push(userMsg);
+    clearPendingImage();
+    renderMessages();
+    scrollToBottom();
+
+    await streamResponse();
+  });
+
+  // ── Render all messages ────────────────────────────────────────────────
+  function renderMessages() {
+    // Remove all message rows (keep empty-state div)
+    chatWindow.querySelectorAll('.message-row').forEach(el => el.remove());
+
+    if (messages.length === 0) {
+      emptyState.style.display = 'flex';
+      return;
+    }
+    emptyState.style.display = 'none';
+
+    messages.forEach((msg, i) => {
+      chatWindow.appendChild(buildBubble(msg.role, msg.content, i));
+    });
+  }
+
+  // ── Markdown → HTML renderer (bot messages only) ───────────────────────
+  function renderMarkdown(md) {
+    if (!md) return '';
+
+    function esc(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Inline: bold, italic, inline code (applied after HTML-escaping)
+    function inline(s) {
+      s = esc(s);
+      s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+      s = s.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
+      s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      s = s.replace(/_([^_\s][^_]*)_/g, '<em>$1</em>');
+      return s;
+    }
+
+    function parseRow(row) {
+      const cells = row.split('|');
+      if (cells[0].trim() === '') cells.shift();
+      if (cells[cells.length - 1].trim() === '') cells.pop();
+      return cells.map(c => c.trim());
+    }
+
+    const lines = md.split('\n');
+    let html = '';
+    let i = 0;
+    let listType = '';
+
+    const closeList = () => {
+      if (listType) { html += `</${listType}>`; listType = ''; }
+    };
+
+    while (i < lines.length) {
+      const line = lines[i];
+
+      // Fenced code block
+      if (/^```/.test(line)) {
+        closeList();
+        const lang = esc(line.slice(3).trim());
+        let code = '';
+        i++;
+        while (i < lines.length && !/^```/.test(lines[i])) {
+          code += (code ? '\n' : '') + lines[i];
+          i++;
+        }
+        html += `<pre><code${lang ? ` class="language-${lang}"` : ''}>${esc(code)}</code></pre>`;
+        i++; continue;
+      }
+
+      // Table (header row followed by separator row)
+      if (line.includes('|') && i + 1 < lines.length && /^\|?[\s\-|:]+\|/.test(lines[i + 1])) {
+        closeList();
+        const headers = parseRow(line);
+        i += 2;
+        html += '<table><thead><tr>';
+        headers.forEach(h => { html += `<th>${inline(h)}</th>`; });
+        html += '</tr></thead><tbody>';
+        while (i < lines.length && lines[i].includes('|')) {
+          html += '<tr>';
+          parseRow(lines[i]).forEach(c => { html += `<td>${inline(c)}</td>`; });
+          html += '</tr>';
+          i++;
+        }
+        html += '</tbody></table>';
+        continue;
+      }
+
+      // Headings
+      const hm = line.match(/^(#{1,6})\s+(.+)$/);
+      if (hm) {
+        closeList();
+        const lvl = hm[1].length;
+        html += `<h${lvl}>${inline(hm[2])}</h${lvl}>`;
+        i++; continue;
+      }
+
+      // Horizontal rule
+      if (/^(\*{3,}|-{3,}|_{3,})$/.test(line.trim())) {
+        closeList();
+        html += '<hr>';
+        i++; continue;
+      }
+
+      // Unordered list item
+      const ulm = line.match(/^[-*+]\s+(.+)$/);
+      if (ulm) {
+        if (listType !== 'ul') { closeList(); html += '<ul>'; listType = 'ul'; }
+        html += `<li>${inline(ulm[1])}</li>`;
+        i++; continue;
+      }
+
+      // Ordered list item
+      const olm = line.match(/^\d+\.\s+(.+)$/);
+      if (olm) {
+        if (listType !== 'ol') { closeList(); html += '<ol>'; listType = 'ol'; }
+        html += `<li>${inline(olm[1])}</li>`;
+        i++; continue;
+      }
+
+      // Blank line → paragraph break
+      if (line.trim() === '') {
+        closeList();
+        html += '<br>';
+        i++; continue;
+      }
+
+      // Plain paragraph line
+      closeList();
+      html += `<p>${inline(line)}</p>`;
+      i++;
+    }
+
+    closeList();
+    // Collapse runs of more than two consecutive <br> tags
+    html = html.replace(/(<br\s*\/?>\s*){3,}/gi, '<br><br>');
+    html = html.replace(/^(<br\s*\/?>)+|(<br\s*\/?>)+$/gi, '');
+    return html;
+  }
+
+  // ── Build a single bubble element ──────────────────────────────────────
+  function buildBubble(role, content, index) {
+    const row = document.createElement('div');
+    row.classList.add('message-row', role === 'user' ? 'user' : 'bot');
+    row.dataset.index = index;
+
+    const avatar = document.createElement('div');
+    avatar.classList.add('avatar', role === 'user' ? 'user-avatar' : 'bot-avatar');
+    avatar.textContent = role === 'user' ? 'You' : 'O';
+
+    const bubble = document.createElement('div');
+    bubble.classList.add('bubble');
+
+    // Render attached images (vision messages)
+    const msg = messages[index];
+    if (msg && msg.imageDataUrls) {
+      msg.imageDataUrls.forEach(url => {
+        const img = document.createElement('img');
+        img.src = url;
+        img.classList.add('bubble-image');
+        img.alt = 'Attached image';
+        bubble.appendChild(img);
+      });
+    }
+
+    if (content) {
+      if (role === 'user') {
+        const textSpan = document.createElement('span');
+        textSpan.textContent = content;
+        bubble.appendChild(textSpan);
+      } else {
+        bubble.innerHTML = renderMarkdown(content);
+      }
+    }
+
+    if (role === 'user') {
+      row.appendChild(bubble);
+      row.appendChild(avatar);
+    } else {
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+    }
+    return row;
+  }
+
+  // ── Append a typing indicator row and return the bubble element ─────────
+  function addTypingIndicator() {
+    const row = document.createElement('div');
+    row.classList.add('message-row', 'bot');
+    row.id = 'typing-row';
+
+    const avatar = document.createElement('div');
+    avatar.classList.add('avatar', 'bot-avatar');
+    avatar.textContent = 'O';
+
+    const bubble = document.createElement('div');
+    bubble.classList.add('bubble', 'typing-indicator');
+    bubble.innerHTML = `
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>`;
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatWindow.appendChild(row);
+    scrollToBottom();
+    return row;
+  }
+
+  // ── Stream response from /api/chat ─────────────────────────────────────
+  async function streamResponse() {
+    setStreaming(true);
+
+    const typingRow = addTypingIndicator();
+    let assistantContent = '';
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: modelSelect.value,
+          // Strip display-only imageDataUrls before sending to server
+          messages: messages.map(({ imageDataUrls, ...m }) => m),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      }
+
+      // Replace typing indicator with a real bubble as soon as first token arrives.
+      let bubbleEl = null;
+
+      const reader  = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer    = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE lines are separated by double newlines; process all complete events.
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop(); // keep the incomplete tail
+
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith('data:')) continue;
+
+          const payload = line.slice(5).trim();
+          if (payload === '[DONE]') break;
+
+          let token;
+          try {
+            token = JSON.parse(payload); // the server JSON-encodes each token
+          } catch {
+            continue;
+          }
+
+          // Swap indicator for bubble on first token
+          if (!bubbleEl) {
+            typingRow.remove();
+            messages.push({ role: 'assistant', content: '' });
+            const idx = messages.length - 1;
+            bubbleEl = buildBubble('assistant', '', idx);
+            chatWindow.appendChild(bubbleEl);
+          }
+
+          assistantContent += token;
+          bubbleEl.querySelector('.bubble').innerHTML = renderMarkdown(assistantContent);
+          messages[messages.length - 1].content = assistantContent;
+          scrollToBottom();
+        }
+      }
+
+      // If we never got a real token (e.g. only the DONE signal), clean up.
+      if (!bubbleEl) typingRow.remove();
+
+    } catch (err) {
+      typingRow.remove();
+      console.error('Stream error:', err);
+
+      // Show error as a bot message
+      messages.push({ role: 'assistant', content: `⚠️ ${err.message}` });
+      chatWindow.appendChild(buildBubble('assistant', `⚠️ ${err.message}`, messages.length - 1));
+    } finally {
+      setStreaming(false);
+      scrollToBottom();
+    }
+  }
+
+  // ── UI helpers ──────────────────────────────────────────────────────────
+  function setStreaming(active) {
+    isStreaming = active;
+    sendBtn.disabled = active;
+    userInput.disabled = active;
+    userInput.placeholder = active ? 'OllaGo is responding…' : 'Message OllaGo…';
+  }
+
+  function scrollToBottom() {
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  // ── Conversation history (session-local) ────────────────────────────────
+  let conversations = []; // [{ title, messages }]
+  let activeConvIndex = -1;
+
+  function saveToHistory() {
+    if (messages.length === 0) return;
+    const firstContent = messages[0].content || (messages[0].imageDataUrls ? '[Image]' : '');
+    const title = firstContent.slice(0, 42) + (firstContent.length > 42 ? '…' : '');
+    conversations.unshift({ title, messages: [...messages] });
+    activeConvIndex = -1;
+    renderHistory();
+  }
+
+  function renderHistory() {
+    historyList.innerHTML = '';
+    conversations.forEach((conv, i) => {
+      const item = document.createElement('div');
+      item.classList.add('history-item');
+      if (i === activeConvIndex) item.classList.add('active');
+      item.textContent = conv.title;
+      item.addEventListener('click', () => {
+        if (isStreaming) return;
+        saveToHistory();
+        messages = [...conv.messages];
+        activeConvIndex = i;
+        renderMessages();
+        renderHistory();
+        scrollToBottom();
+        sidebar.classList.remove('open');
+      });
+      historyList.appendChild(item);
+    });
+  }
+</script>
+</body>
+</html>

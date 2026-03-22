@@ -7,6 +7,8 @@ Created by **Rodrigo Andrade**.
 
 ## Prerequisites
 
+**Supported platforms:** macOS, Linux, and Windows (via WSL)
+
 | Tool | Version | Purpose |
 |---|---|---|
 | Go | 1.22+ | Backend server |
@@ -18,6 +20,14 @@ Created by **Rodrigo Andrade**.
 ```bash
 ollama pull gemma3:12b
 ```
+
+---
+
+## Screenshots
+
+![OllaGo chat interface](.github/images/OllaGo_01.png)
+
+![OllaGo chat with response](.github/images/OllaGo_02.png)
 
 ---
 

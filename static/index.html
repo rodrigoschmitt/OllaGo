@@ -406,13 +406,13 @@
     #input-form:focus-within { border-color: rgba(255,255,255,.28); }
     #user-input {
       flex: 1;
-      padding: 2px 0;
+      padding: 7px 0;
       border: none;
       font-size: .9rem;
       resize: none;
       font-family: inherit;
       max-height: 160px;
-      min-height: 26px;
+      min-height: 36px;
       line-height: 1.6;
       background: transparent;
       color: var(--text);
@@ -599,7 +599,7 @@
       </div>
     </div>
     <form id="input-form">
-      <button id="attach-btn" type="button" aria-label="Attach image" style="display:none">
+      <button id="attach-btn" type="button" aria-label="Attach image">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
         </svg>
@@ -630,8 +630,6 @@
   let isStreaming = false;
   let pendingImageB64 = null;     // raw base64 for Ollama API
   let pendingImageDataUrl = null; // full data URL for display
-
-  const VISION_MODELS = new Set(['qwen3.5:27b','gemma3:12b']);
 
   // ── DOM refs ───────────────────────────────────────────────────────────
   const chatWindow        = document.getElementById('chat-window');
@@ -683,14 +681,11 @@
     } finally {
       modelSelect.disabled = false;
       modelBadge.textContent = modelSelect.value || '—';
-      updateAttachVisibility();
     }
   })();
 
   modelSelect.addEventListener('change', () => {
     modelBadge.textContent = modelSelect.value;
-    updateAttachVisibility();
-    if (!VISION_MODELS.has(modelSelect.value)) clearPendingImage();
   });
 
   // ── Auto-resize textarea ────────────────────────────────────────────────
@@ -753,7 +748,7 @@
   }
 
   function updateAttachVisibility() {
-    attachBtn.style.display = VISION_MODELS.has(modelSelect.value) ? 'flex' : 'none';
+    attachBtn.style.display = 'flex';
   }
 
   // ── Form submit ─────────────────────────────────────────────────────────

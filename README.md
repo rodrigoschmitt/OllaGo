@@ -1,6 +1,7 @@
-# RYTA – Ryanair Travel Assistant
+# OllaGo – AI Assistant
 
 A local, ChatGPT-style chat interface powered by **Ollama** and built with Go + Vanilla JS.
+Created by **Rodrigo Andrade**.
 
 ---
 
@@ -24,7 +25,7 @@ ollama pull gemma3:12b
 
 ```bash
 # 1. Clone and enter the project
-git clone <repo-url> ryta && cd ryta
+git clone <repo-url> ollago && cd ollago
 
 # 2. (Optional) override defaults via env vars
 export OLLAMA_URL=http://localhost:11434   # default
@@ -48,7 +49,7 @@ The `static/` directory is served from the working directory, so run the
 ## Project structure
 
 ```
-ryta/
+ollago/
 ├── cmd/
 │   └── server/
 │       └── main.go          # Entry point: HTTP server, graceful shutdown
@@ -105,7 +106,8 @@ Browser                 Go server              Ollama
    complete SSE events, strips the `data:` prefix, and `JSON.parse()`s
    each token.
 3. The first token replaces the typing indicator with a real bubble;
-   subsequent tokens are appended directly to the bubble's `textContent`.
+   subsequent tokens are appended directly to the bubble via the Markdown
+   renderer, so bold, tables, and code blocks render live as tokens arrive.
 
 ---
 
@@ -135,7 +137,7 @@ so you can serve many users on a single machine before hitting limits.
                  └──────┬───────────┘
            ┌────────────┼────────────┐
            ▼            ▼            ▼
-        ryta:8080   ryta:8081   ryta:8082   (multiple Go replicas)
+       ollago:8080  ollago:8081  ollago:8082  (multiple Go replicas)
            │            │            │
            └────────────┴────────────┘
                         │

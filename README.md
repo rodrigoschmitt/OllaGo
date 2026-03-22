@@ -55,10 +55,13 @@ ollago/
 │       └── main.go          # Entry point: HTTP server, graceful shutdown
 ├── internal/
 │   └── handler/
-│       └── chat.go          # POST /api/chat → SSE streaming handler
+│       ├── chat.go          # POST /api/chat → SSE streaming handler
+│       └── models.go        # GET /api/models → installed model list
 ├── pkg/
 │   └── ollama/
-│       └── client.go        # Ollama API client (streaming)
+│       └── client.go        # Ollama API client (streaming + model listing)
+├── scripts/
+│   └── update_models.py     # Patches index.html with the current ollama list
 ├── static/
 │   └── index.html           # Full frontend (HTML + CSS + JS, no build step)
 ├── go.mod
@@ -100,14 +103,38 @@ Browser                 Go server              Ollama
 
 ### Browser side (`static/index.html`)
 
-1. Uses `fetch()` with a `ReadableStream` body reader (not `EventSource`,
+1. On load, calls `GET /api/models` to populate the model selector dynamically
+   from the locally installed Ollama models — no hard-coded list.
+2. Uses `fetch()` with a `ReadableStream` body reader (not `EventSource`,
    because `EventSource` only supports GET requests).
-2. Accumulates chunks in a string buffer, splits on `\n\n` to extract
+3. Accumulates chunks in a string buffer, splits on `\n\n` to extract
    complete SSE events, strips the `data:` prefix, and `JSON.parse()`s
    each token.
-3. The first token replaces the typing indicator with a real bubble;
+4. The first token replaces the typing indicator with a real bubble;
    subsequent tokens are appended directly to the bubble via the Markdown
    renderer, so bold, tables, and code blocks render live as tokens arrive.
+
+---
+
+## Syncing the model list (offline / static patching)
+
+If you prefer to pre-bake the model list into the HTML rather than relying on
+the live `/api/models` call, run the helper script:
+
+```bash
+# Preview changes without writing
+python3 scripts/update_models.py --dry-run
+
+# Apply — rewrites static/index.html in place
+python3 scripts/update_models.py
+
+# Point at a different HTML file
+python3 scripts/update_models.py --html path/to/index.html
+```
+
+The script runs `ollama list`, parses the installed model names, and replaces
+the `<select id="model-select">` block in `static/index.html`.
+Requires Python 3.9+ and Ollama running locally.
 
 ---
 

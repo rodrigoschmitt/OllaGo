@@ -51,6 +51,16 @@ go run ./cmd/server
 open http://localhost:8080
 ```
 
+## Running tests
+
+```bash
+# Run all tests
+go test ./...
+
+# Run tests with verbose output
+go test -v ./...
+```
+
 The `static/` directory is served from the working directory, so run the
 `go run` command from the project root.
 

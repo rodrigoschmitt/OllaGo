@@ -131,6 +131,7 @@ func (c *Client) Chat(ctx context.Context, req ChatRequest, tokenCh chan<- strin
 
 		var cr chatResponse
 		if err := json.Unmarshal(line, &cr); err != nil {
+			// Log malformed lines but continue processing
 			continue // skip malformed lines
 		}
 

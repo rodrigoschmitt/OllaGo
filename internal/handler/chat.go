@@ -10,7 +10,7 @@ import (
 )
 
 type chatRequest struct {
-	Model    string          `json:"model"`
+	Model    string           `json:"model"`
 	Messages []ollama.Message `json:"messages"`
 }
 

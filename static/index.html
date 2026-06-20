@@ -24,6 +24,74 @@
       --radius:      16px;
     }
 
+    /* ── Light mode theme ───────────────────────────────────────── */
+    .theme-light {
+      --bg:          #ffffff;
+      --sidebar-bg:  #f5f5f5;
+      --surface:     #e5e5e5;
+      --surface-2:   #d4d4d4;
+      --border:      rgba(0,0,0,.1);
+      --text:        #111111;
+      --text-muted:  #6b7280;
+      --user-bg:     #e5e5e5;
+      --user-fg:     #111111;
+      --bot-fg:      #111111;
+    }
+
+    /* ── System mode theme ──────────────────────────────────────── */
+    .theme-system {
+      --bg:          #212121;
+      --sidebar-bg:  #171717;
+      --surface:     #2f2f2f;
+      --surface-2:   #3d3d3d;
+      --border:      rgba(255,255,255,.1);
+      --text:        #ececec;
+      --text-muted:  #8e8ea0;
+      --user-bg:     #2f2f2f;
+      --user-fg:     #ececec;
+      --bot-fg:      #ececec;
+    }
+
+    /* ── Theme selector styling ─────────────────────────────────── */
+    #theme-select {
+      background-color: var(--surface) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    
+    #theme-select option {
+      background-color: var(--sidebar-bg) !important;
+      color: var(--text) !important;
+    }
+
+    /* ── Theme selector styling ─────────────────────────────────── */
+    #theme-select {
+      background-color: var(--surface) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    
+    #theme-select option {
+      background-color: var(--sidebar-bg) !important;
+      color: var(--text) !important;
+    }
+
+    /* ── Apply system theme preference ──────────────────────────── */
+    @media (prefers-color-scheme: light) {
+      .theme-system {
+        --bg:          #ffffff;
+        --sidebar-bg:  #f5f5f5;
+        --surface:     #e5e5e5;
+        --surface-2:   #d4d4d4;
+        --border:      rgba(0,0,0,.1);
+        --text:        #111111;
+        --text-muted:  #6b7280;
+        --user-bg:     #e5e5e5;
+        --user-fg:     #111111;
+        --bot-fg:      #111111;
+      }
+    }
+
     /* ── Reset & base ────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -64,12 +132,12 @@
     #logo-mark {
       width: 32px;
       height: 32px;
-      background: #fff;
+      background: var(--surface);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
+      color: var(--text); /* Ensure icon inherits text color */
     }
     #logo-mark svg { width: 18px; height: 18px; fill: #212121; }
 
@@ -359,11 +427,12 @@
     }
     #empty-state .es-icon {
       width: 52px; height: 52px;
-      background: #fff;
+      background: var(--surface);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
+      color: var(--text); /* Make sure icon inherits text color */
     }
     #empty-state .es-icon svg { width: 28px; height: 28px; fill: #212121; }
     #empty-state h2 { font-size: 1.4rem; font-weight: 600; color: var(--text); }
@@ -532,9 +601,11 @@
 <aside id="sidebar">
   <div id="sidebar-header">
     <div id="logo-mark">
-      <!-- Sparkle / AI icon -->
+      <!-- Computer / Local model icon -->
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/>
+        <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2"/>
+        <line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/>
       </svg>
     </div>
     <div id="brand-text">
@@ -560,7 +631,17 @@
   <div id="history-label">Recent</div>
   <div id="history-list"></div>
 
-  <div id="sidebar-footer">Powered by Ollama · Rodrigo Andrade</div>
+  <div id="sidebar-footer">
+    Powered by Ollama · Rodrigo Andrade
+    <div style="margin-top: 10px;">
+      <label for="theme-select" style="font-size: .62rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); display: block;">Theme</label>
+      <select id="theme-select" style="width: 100%; padding: 8px 30px 8px 10px; background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 8px; font-size: .82rem; cursor: pointer; appearance: none; margin-top: 5px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238e8ea0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center;">
+        <option value="system">System</option>
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+    </div>
+  </div>
 </aside>
 
 <!-- ── Main ────────────────────────────────────────────────────── -->
@@ -574,7 +655,9 @@
     <div id="empty-state">
       <div class="es-icon">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/>
+          <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2"/>
+          <line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/>
         </svg>
       </div>
       <h2>What can I help you with?</h2>
@@ -1116,6 +1199,20 @@
       historyList.appendChild(item);
     });
   }
+
+  // ── Theme switching ─────────────────────────────────────────────────────
+  const themeSelect = document.getElementById('theme-select');
+  
+  // Load saved theme from localStorage or default to system
+  const savedTheme = localStorage.getItem('ollago-theme') || 'system';
+  themeSelect.value = savedTheme;
+  document.documentElement.className = `theme-${savedTheme}`;
+  
+  themeSelect.addEventListener('change', (e) => {
+    const theme = e.target.value;
+    document.documentElement.className = `theme-${theme}`;
+    localStorage.setItem('ollago-theme', theme);
+  });
 </script>
 </body>
 </html>
